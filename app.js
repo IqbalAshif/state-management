@@ -3,11 +3,20 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 var session = require('express-session');
 const bodyParser = require('body-parser');
+const passport = require('./utils/pass');
 const app = express();
 const port = 3000;
 
-const username = 'foo';
-const password = 'bar';
+const loggedIn = (req, res, next) => {
+  if (req.user) {
+    next();
+  } else {
+    res.redirect('/form');
+  }
+};
+
+/*const username = 'foo';
+const password = 'bar';*/
 
 app.use(cookieParser());
 
@@ -16,11 +25,12 @@ app.use(
     secret: 'keyboard cat',
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 60 *1000},
+    cookie: { maxAge: 60 * 1000 },
   })
 );
-
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.set('views', './views');
 app.set('view engine', 'pug');
@@ -46,25 +56,25 @@ app.get('/deleteCookie', (req, res) => {
 app.get('/form', (req, res) => {
   res.render('form');
 });
-app.get('/secret', (req, res) => {
-  console.log('session stuff', req.session);
-  if(req.session.logged){
-    res.render('secret');
-  }else{
-    res.send('good try');
-  }
+app.get('/secret', loggedIn, (req, res) => {
+  res.render('secret');
+});
+app.get('/more', loggedIn, (req, res) => {
+  res.send('more secure page...');
 });
 
-app.post('/login', (req, res) => {
-  console.log('username', req.body.username);
-  if(req.body.username === username && req.body.password === password){
-    req.session.logged = true;
-    req.session.test = {more: 'stuff', yay:42};
-    res.redirect('secret');
+app.post(
+  '/login',
+  passport.authenticate('local', { failureRedirect: '/form' }),
+  (req, res) => {
+    console.log('login success');
+    res.redirect('/secret');
   }
+);
 
-    req.session.logged =false;
-    res.redirect('form');
+app.get('/logout', function(req, res){
+  req.logout();
+  res.redirect('/');
 });
 
 app.listen(port, () => console.log(`Example app listening on port ${port}!`));
