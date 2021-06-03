@@ -1,3 +1,5 @@
 # wop-starters
 
-Choose a branch and download as zip.
+#State Management
+#cookies and sessions
+#Using pug
